@@ -5,9 +5,13 @@ use std::path::Path;
 use std::fmt::{self, Display};
 use std::error::Error;
 use std::convert::{TryFrom, TryInto, Infallible};
+use std::fs;
+use std::io;
+use std::os::unix::fs::MetadataExt;
 
 #[derive(Debug)]
 pub enum FileOwnerError {
+    IoError(io::Error),
     NixError(nix::Error),
     UserNotFound(String),
     GroupNotFound(String),
@@ -16,7 +20,8 @@ pub enum FileOwnerError {
 impl Display for FileOwnerError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            FileOwnerError::NixError(_) => write!(f, "nix error"),
+            FileOwnerError::IoError(_) => write!(f, "I/O error"),
+            FileOwnerError::NixError(_) => write!(f, "*nix error"),
             FileOwnerError::UserNotFound(name) => write!(f, "user name {:?} not found", name),
 			FileOwnerError::GroupNotFound(name) => write!(f, "group name {:?} not found", name),
         }
@@ -26,10 +31,17 @@ impl Display for FileOwnerError {
 impl Error for FileOwnerError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
+            FileOwnerError::IoError(err) => Some(err),
             FileOwnerError::NixError(err) => Some(err),
             FileOwnerError::UserNotFound(_) => None,
 			FileOwnerError::GroupNotFound(_) => None,
         }
+    }
+}
+
+impl From<io::Error> for FileOwnerError {
+    fn from(err: io::Error) -> FileOwnerError {
+        FileOwnerError::IoError(err)
     }
 }
 
@@ -55,6 +67,10 @@ impl Owner {
 
     pub fn from_name(user: &str) -> Result<Owner, FileOwnerError> {
         Ok(Owner(User::from_name(user)?.ok_or_else(|| FileOwnerError::UserNotFound(user.to_owned()))?.uid))
+    }
+
+    pub fn get_name(&self) -> Result<Option<String>, FileOwnerError> {
+        Ok(User::from_uid(self.0)?.map(|u| u.name))
     }
 }
 
@@ -111,12 +127,16 @@ pub fn set_owner_group<E1: Into<FileOwnerError>, E2: Into<FileOwnerError>>(path:
     Ok(chown(path.as_ref().into(), Some(owner.try_into().map_err(Into::into)?.0), Some(group.try_into().map_err(Into::into)?.0))?)
 }
 
+pub fn get_owner(path: impl AsRef<Path>) -> Result<Owner, FileOwnerError> {
+    Ok(Owner::from_uid(fs::metadata(path)?.uid() as libc::uid_t))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn test_calling() {
+    fn test_set() {
         let foo = Path::new("/tmp/foo");
         std::fs::write(foo, "test").unwrap();
 
@@ -130,5 +150,10 @@ mod tests {
         set_owner_group(foo, 99, 99).unwrap();
         set_owner_group(foo, 99, "nogroup").unwrap();
         set_owner_group(foo, "nobody", 99).unwrap();
+    }
+
+    #[test]
+    fn test_get() {
+        assert_eq!(get_owner("/tmp").unwrap().get_name().unwrap().as_deref(), Some("root"));
     }
 }
