@@ -1,6 +1,6 @@
 [package]
 name = "file-owner"
-version = "0.1.0"
+version = "0.1.1-alpha.0"
 authors = ["Jakub Pastuszek <jpastuszek@protonmail.com>"]
 description = "Set and get Unix file owner and group"
 repository = "https://git.sr.ht/~jpastuszek/file-owner"
