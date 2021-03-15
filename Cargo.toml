@@ -2,9 +2,15 @@
 name = "file-owner"
 version = "0.1.0"
 authors = ["Jakub Pastuszek <jpastuszek@protonmail.com>"]
+description = "Set and get Unix file owner and group"
+repository = "https://git.sr.ht/~jpastuszek/file-owner"
+homepage = "https://sr.ht/~jpastuszek/file-owner/"
+documentation = "https://docs.rs/file-owner"
+readme = "README.md"
+keywords = ["file", "owner", "unix", "chown"]
+categories = ["filesystem", "os::unix-apis"]
+license = "MIT"
 edition = "2018"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 nix = "0.20.0"
