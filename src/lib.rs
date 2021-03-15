@@ -1,6 +1,5 @@
 use nix::unistd::chown;
 use nix::unistd::{Gid, Uid, Group as NixGroup, User};
-use libc;
 use std::path::Path;
 use std::fmt::{self, Display};
 use std::error::Error;
@@ -61,12 +60,16 @@ impl From<Infallible> for FileOwnerError {
 pub struct Owner(Uid);
 
 impl Owner {
-    pub fn from_uid(uid: libc::uid_t) -> Owner {
-        Owner(Uid::from_raw(uid))
+    pub fn from_uid(uid: u32) -> Owner {
+        Owner(Uid::from_raw(uid.try_into().unwrap()))
     }
 
     pub fn from_name(user: &str) -> Result<Owner, FileOwnerError> {
         Ok(Owner(User::from_name(user)?.ok_or_else(|| FileOwnerError::UserNotFound(user.to_owned()))?.uid))
+    }
+
+    pub fn id(&self) -> u32 {
+        self.0.as_raw().try_into().unwrap()
     }
 
     pub fn name(&self) -> Result<Option<String>, FileOwnerError> {
@@ -74,8 +77,8 @@ impl Owner {
     }
 }
 
-impl From<libc::uid_t> for Owner {
-    fn from(uid: libc::uid_t) -> Owner {
+impl From<u32> for Owner {
+    fn from(uid: u32) -> Owner {
         Owner::from_uid(uid)
     }
 }
@@ -92,12 +95,16 @@ impl<'s> TryFrom<&'s str> for Owner {
 pub struct Group(Gid);
 
 impl Group {
-    pub fn from_gid(gid: libc::gid_t) -> Group {
-        Group(Gid::from_raw(gid))
+    pub fn from_gid(gid: u32) -> Group {
+        Group(Gid::from_raw(gid.try_into().unwrap()))
     }
 
     pub fn from_name(group: &str) -> Result<Group, FileOwnerError> {
         Ok(Group(NixGroup::from_name(group)?.ok_or_else(|| FileOwnerError::GroupNotFound(group.to_owned()))?.gid))
+    }
+
+    pub fn id(&self) -> u32 {
+        self.0.as_raw().try_into().unwrap()
     }
 
     pub fn name(&self) -> Result<Option<String>, FileOwnerError> {
@@ -105,8 +112,8 @@ impl Group {
     }
 }
 
-impl From<libc::gid_t> for Group {
-    fn from(gid: libc::gid_t) -> Group {
+impl From<u32> for Group {
+    fn from(gid: u32) -> Group {
         Group::from_gid(gid)
     }
 }
@@ -132,16 +139,16 @@ pub fn set_owner_group<E1: Into<FileOwnerError>, E2: Into<FileOwnerError>>(path:
 }
 
 pub fn owner(path: impl AsRef<Path>) -> Result<Owner, FileOwnerError> {
-    Ok(Owner::from_uid(fs::metadata(path)?.uid() as libc::uid_t))
+    Ok(Owner::from_uid(fs::metadata(path)?.uid().try_into().unwrap()))
 }
 
 pub fn group(path: impl AsRef<Path>) -> Result<Group, FileOwnerError> {
-    Ok(Group::from_gid(fs::metadata(path)?.gid() as libc::gid_t))
+    Ok(Group::from_gid(fs::metadata(path)?.gid().try_into().unwrap()))
 }
 
 pub fn owner_group(path: impl AsRef<Path>) -> Result<(Owner, Group), FileOwnerError> {
     let meta = fs::metadata(path)?;
-    Ok((Owner::from_uid(meta.uid() as libc::uid_t), Group::from_gid(meta.gid() as libc::gid_t)))
+    Ok((Owner::from_uid(meta.uid().try_into().unwrap()), Group::from_gid(meta.gid().try_into().unwrap())))
 }
 
 #[cfg(test)]
@@ -177,5 +184,8 @@ mod tests {
         let (o, g) = owner_group("/tmp/bar").unwrap();
         assert_eq!(o.name().unwrap().as_deref(), Some("nobody"));
         assert_eq!(g.name().unwrap().as_deref(), Some("nogroup"));
+
+        assert_eq!(o.id(), 99);
+        assert_eq!(g.id(), 99);
     }
 }
