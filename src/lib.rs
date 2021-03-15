@@ -199,32 +199,32 @@ impl Display for Group {
     }
 }
 
-/// Sets owner to file at given path.
+/// Sets owner to file at the given path.
 pub fn set_owner<E: Into<FileOwnerError>>(path: impl AsRef<Path>, owner: impl TryInto<Owner, Error = E>) -> Result<(), FileOwnerError> {
     Ok(chown(path.as_ref(), Some(owner.try_into().map_err(Into::into)?.0), None)?)
 }
 
-/// Sets group to file at given path.
+/// Sets group to file at the given path.
 pub fn set_group<E: Into<FileOwnerError>>(path: impl AsRef<Path>, group: impl TryInto<Group, Error = E>) -> Result<(), FileOwnerError> {
     Ok(chown(path.as_ref(), None, Some(group.try_into().map_err(Into::into)?.0))?)
 }
 
-/// Sets owner and group to file at given path.
+/// Sets owner and group to file at the given path.
 pub fn set_owner_group<E1: Into<FileOwnerError>, E2: Into<FileOwnerError>>(path: impl AsRef<Path>, owner: impl TryInto<Owner, Error = E1>, group: impl TryInto<Group, Error = E2>) -> Result<(), FileOwnerError> {
     Ok(chown(path.as_ref(), Some(owner.try_into().map_err(Into::into)?.0), Some(group.try_into().map_err(Into::into)?.0))?)
 }
 
-/// Gets owner of file at given path.
+/// Gets owner of a file at the given path.
 pub fn owner(path: impl AsRef<Path>) -> Result<Owner, FileOwnerError> {
     Ok(Owner::from_uid(fs::metadata(path)?.uid().try_into().unwrap()))
 }
 
-/// Gets group of file at given path.
+/// Gets group of a file at the given path.
 pub fn group(path: impl AsRef<Path>) -> Result<Group, FileOwnerError> {
     Ok(Group::from_gid(fs::metadata(path)?.gid().try_into().unwrap()))
 }
 
-/// Gets owner and group of file at given path.
+/// Gets owner and group of a file at the given path.
 pub fn owner_group(path: impl AsRef<Path>) -> Result<(Owner, Group), FileOwnerError> {
     let meta = fs::metadata(path)?;
     Ok((Owner::from_uid(meta.uid().try_into().unwrap()), Group::from_gid(meta.gid().try_into().unwrap())))
@@ -232,22 +232,22 @@ pub fn owner_group(path: impl AsRef<Path>) -> Result<(Owner, Group), FileOwnerEr
 
 /// Extension methods for `T: AsRef<Path>`.
 pub trait PathExt {
-    /// Sets owner to file at given path.
+    /// Sets owner to file at the given path.
     fn set_owner<E: Into<FileOwnerError>>(&self, owner: impl TryInto<Owner, Error = E>) -> Result<(), FileOwnerError>;
 
-    /// Sets group to file at given path.
+    /// Sets group to file at the given path.
     fn set_group<E: Into<FileOwnerError>>(&self, group: impl TryInto<Group, Error = E>) -> Result<(), FileOwnerError>;
 
-    /// Sets owner and group to file at given path.
+    /// Sets owner and group to file at the given path.
     fn set_owner_group<E1: Into<FileOwnerError>, E2: Into<FileOwnerError>>(&self, owner: impl TryInto<Owner, Error = E1>, group: impl TryInto<Group, Error = E2>) -> Result<(), FileOwnerError>;
 
-    /// Gets owner of file at given path.
+    /// Gets owner of a file at the given path.
     fn owner(&self) -> Result<Owner, FileOwnerError>;
 
-    /// Gets group of file at given path.
+    /// Gets group of a file at the given path.
     fn group(&self) -> Result<Group, FileOwnerError>;
 
-    /// Gets owner and group of file at given path.
+    /// Gets owner and group of a file at the given path.
     fn owner_group(&self) -> Result<(Owner, Group), FileOwnerError>;
 }
 
