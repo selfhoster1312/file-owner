@@ -69,7 +69,7 @@ impl Owner {
         Ok(Owner(User::from_name(user)?.ok_or_else(|| FileOwnerError::UserNotFound(user.to_owned()))?.uid))
     }
 
-    pub fn get_name(&self) -> Result<Option<String>, FileOwnerError> {
+    pub fn name(&self) -> Result<Option<String>, FileOwnerError> {
         Ok(User::from_uid(self.0)?.map(|u| u.name))
     }
 }
@@ -99,6 +99,10 @@ impl Group {
     pub fn from_name(group: &str) -> Result<Group, FileOwnerError> {
         Ok(Group(NixGroup::from_name(group)?.ok_or_else(|| FileOwnerError::GroupNotFound(group.to_owned()))?.gid))
     }
+
+    pub fn name(&self) -> Result<Option<String>, FileOwnerError> {
+        Ok(NixGroup::from_gid(self.0)?.map(|u| u.name))
+    }
 }
 
 impl From<libc::gid_t> for Group {
@@ -127,8 +131,17 @@ pub fn set_owner_group<E1: Into<FileOwnerError>, E2: Into<FileOwnerError>>(path:
     Ok(chown(path.as_ref().into(), Some(owner.try_into().map_err(Into::into)?.0), Some(group.try_into().map_err(Into::into)?.0))?)
 }
 
-pub fn get_owner(path: impl AsRef<Path>) -> Result<Owner, FileOwnerError> {
+pub fn owner(path: impl AsRef<Path>) -> Result<Owner, FileOwnerError> {
     Ok(Owner::from_uid(fs::metadata(path)?.uid() as libc::uid_t))
+}
+
+pub fn group(path: impl AsRef<Path>) -> Result<Group, FileOwnerError> {
+    Ok(Group::from_gid(fs::metadata(path)?.gid() as libc::gid_t))
+}
+
+pub fn owner_group(path: impl AsRef<Path>) -> Result<(Owner, Group), FileOwnerError> {
+    let meta = fs::metadata(path)?;
+    Ok((Owner::from_uid(meta.uid() as libc::uid_t), Group::from_gid(meta.gid() as libc::gid_t)))
 }
 
 #[cfg(test)]
@@ -137,23 +150,32 @@ mod tests {
 
     #[test]
     fn test_set() {
-        let foo = Path::new("/tmp/foo");
-        std::fs::write(foo, "test").unwrap();
+        std::fs::write("/tmp/foo", "test").unwrap();
 
-        set_owner(foo, "nobody").unwrap();
-        set_owner(foo, 99).unwrap();
+        set_owner("/tmp/foo", "nobody").unwrap();
+        set_owner("/tmp/foo", 99).unwrap();
 
-        set_group(foo, "nogroup").unwrap();
-        set_group(foo, 99).unwrap();
+        set_group("/tmp/foo", "nogroup").unwrap();
+        set_group("/tmp/foo", 99).unwrap();
 
-        set_owner_group(foo, "nobody", "nogroup").unwrap();
-        set_owner_group(foo, 99, 99).unwrap();
-        set_owner_group(foo, 99, "nogroup").unwrap();
-        set_owner_group(foo, "nobody", 99).unwrap();
+        set_owner_group("/tmp/foo", "nobody", "nogroup").unwrap();
+        set_owner_group("/tmp/foo", 99, 99).unwrap();
+        set_owner_group("/tmp/foo", 99, "nogroup").unwrap();
+        set_owner_group("/tmp/foo", "nobody", 99).unwrap();
     }
 
     #[test]
     fn test_get() {
-        assert_eq!(get_owner("/tmp").unwrap().get_name().unwrap().as_deref(), Some("root"));
+        std::fs::write("/tmp/bar", "test").unwrap();
+
+        set_owner("/tmp/bar", "nobody").unwrap();
+        set_group("/tmp/bar", "nogroup").unwrap();
+
+        assert_eq!(owner("/tmp/bar").unwrap().name().unwrap().as_deref(), Some("nobody"));
+        assert_eq!(group("/tmp/bar").unwrap().name().unwrap().as_deref(), Some("nogroup"));
+
+        let (o, g) = owner_group("/tmp/bar").unwrap();
+        assert_eq!(o.name().unwrap().as_deref(), Some("nobody"));
+        assert_eq!(g.name().unwrap().as_deref(), Some("nogroup"));
     }
 }
