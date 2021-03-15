@@ -171,6 +171,41 @@ pub fn owner_group(path: impl AsRef<Path>) -> Result<(Owner, Group), FileOwnerEr
     Ok((Owner::from_uid(meta.uid().try_into().unwrap()), Group::from_gid(meta.gid().try_into().unwrap())))
 }
 
+pub trait OwnerPath {
+    fn set_owner<E: Into<FileOwnerError>>(&self, owner: impl TryInto<Owner, Error = E>) -> Result<(), FileOwnerError>;
+    fn set_group<E: Into<FileOwnerError>>(&self, group: impl TryInto<Group, Error = E>) -> Result<(), FileOwnerError>;
+    fn set_owner_group<E1: Into<FileOwnerError>, E2: Into<FileOwnerError>>(&self, owner: impl TryInto<Owner, Error = E1>, group: impl TryInto<Group, Error = E2>) -> Result<(), FileOwnerError>;
+    fn owner(&self) -> Result<Owner, FileOwnerError>;
+    fn group(&self) -> Result<Group, FileOwnerError>;
+    fn owner_group(&self) -> Result<(Owner, Group), FileOwnerError>;
+}
+
+impl<T: AsRef<Path>> OwnerPath for T {
+    fn set_owner<E: Into<FileOwnerError>>(&self, owner: impl TryInto<Owner, Error = E>) -> Result<(), FileOwnerError> {
+        set_owner(self, owner)
+    }
+
+    fn set_group<E: Into<FileOwnerError>>(&self, group: impl TryInto<Group, Error = E>) -> Result<(), FileOwnerError> {
+        set_group(self, group)
+    }
+
+    fn set_owner_group<E1: Into<FileOwnerError>, E2: Into<FileOwnerError>>(&self, owner: impl TryInto<Owner, Error = E1>, group: impl TryInto<Group, Error = E2>) -> Result<(), FileOwnerError> {
+        set_owner_group(self, owner, group)
+    }
+
+    fn owner(&self) -> Result<Owner, FileOwnerError> {
+        owner(self)
+    }
+
+    fn group(&self) -> Result<Group, FileOwnerError> {
+        group(self)
+    }
+
+    fn owner_group(&self) -> Result<(Owner, Group), FileOwnerError> {
+        owner_group(self)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -201,6 +236,8 @@ mod tests {
         assert_eq!(owner("/tmp/bar").unwrap().name().unwrap().as_deref(), Some("nobody"));
         assert_eq!(group("/tmp/bar").unwrap().name().unwrap().as_deref(), Some("nogroup"));
 
+        set_owner_group("/tmp/bar", "nobody", "nogroup").unwrap();
+
         let (o, g) = owner_group("/tmp/bar").unwrap();
         assert_eq!(o.name().unwrap().as_deref(), Some("nobody"));
         assert_eq!(g.name().unwrap().as_deref(), Some("nogroup"));
@@ -216,5 +253,25 @@ mod tests {
 
         assert_eq!(&Owner::from_uid(321321).to_string(), "321321");
         assert_eq!(&Group::from_gid(321321).to_string(), "321321");
+    }
+
+    #[test]
+    fn test_ext_traits() {
+        std::fs::write("/tmp/baz", "test").unwrap();
+
+        "/tmp/baz".set_owner("nobody").unwrap();
+        "/tmp/baz".set_group("nogroup").unwrap();
+
+        assert_eq!("/tmp/baz".owner().unwrap().name().unwrap().as_deref(), Some("nobody"));
+        assert_eq!("/tmp/baz".group().unwrap().name().unwrap().as_deref(), Some("nogroup"));
+
+        "/tmp/baz".set_owner_group("nobody", "nogroup").unwrap();
+
+        let (o, g) = "/tmp/baz".owner_group().unwrap();
+        assert_eq!(o.name().unwrap().as_deref(), Some("nobody"));
+        assert_eq!(g.name().unwrap().as_deref(), Some("nogroup"));
+
+        assert_eq!(o.id(), 99);
+        assert_eq!(g.id(), 99);
     }
 }
