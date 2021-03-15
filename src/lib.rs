@@ -119,7 +119,7 @@ impl Owner {
         self.0.as_raw().try_into().unwrap()
     }
 
-    /// Gets name.
+    /// Gets name if assigned to UID.
     pub fn name(&self) -> Result<Option<String>, FileOwnerError> {
         Ok(User::from_uid(self.0)?.map(|u| u.name))
     }
@@ -169,7 +169,7 @@ impl Group {
         self.0.as_raw().try_into().unwrap()
     }
 
-    // Gets name.
+    /// Gets name if assigned to GID.
     pub fn name(&self) -> Result<Option<String>, FileOwnerError> {
         Ok(NixGroup::from_gid(self.0)?.map(|u| u.name))
     }
