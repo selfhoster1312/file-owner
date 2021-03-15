@@ -8,7 +8,7 @@ UID/GUI numbers or user/group names can be used.
 ## Set owner and group by name
 
 ```ignore
-use file_owner::OwnerPath;
+use file_owner::PathExt;
 
 "/tmp/baz".set_owner("nobody").unwrap();
 "/tmp/baz".set_group("nogroup").unwrap();
@@ -17,7 +17,7 @@ use file_owner::OwnerPath;
 ## Set owner and group by id
 
 ```ignore
-use file_owner::OwnerPath;
+use file_owner::PathExt;
 
 "/tmp/baz".set_owner(99).unwrap();
 "/tmp/baz".set_group(99).unwrap();
@@ -26,7 +26,7 @@ use file_owner::OwnerPath;
 ## Get owner and group
 
 ```ignore
-use file_owner::OwnerPath;
+use file_owner::PathExt;
 
 let o = "/tmp/baz".owner().unwrap();
 o.id(); // 99
@@ -211,7 +211,7 @@ pub fn owner_group(path: impl AsRef<Path>) -> Result<(Owner, Group), FileOwnerEr
     Ok((Owner::from_uid(meta.uid().try_into().unwrap()), Group::from_gid(meta.gid().try_into().unwrap())))
 }
 
-pub trait OwnerPath {
+pub trait PathExt {
     fn set_owner<E: Into<FileOwnerError>>(&self, owner: impl TryInto<Owner, Error = E>) -> Result<(), FileOwnerError>;
     fn set_group<E: Into<FileOwnerError>>(&self, group: impl TryInto<Group, Error = E>) -> Result<(), FileOwnerError>;
     fn set_owner_group<E1: Into<FileOwnerError>, E2: Into<FileOwnerError>>(&self, owner: impl TryInto<Owner, Error = E1>, group: impl TryInto<Group, Error = E2>) -> Result<(), FileOwnerError>;
@@ -220,7 +220,7 @@ pub trait OwnerPath {
     fn owner_group(&self) -> Result<(Owner, Group), FileOwnerError>;
 }
 
-impl<T: AsRef<Path>> OwnerPath for T {
+impl<T: AsRef<Path>> PathExt for T {
     fn set_owner<E: Into<FileOwnerError>>(&self, owner: impl TryInto<Owner, Error = E>) -> Result<(), FileOwnerError> {
         set_owner(self, owner)
     }
