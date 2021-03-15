@@ -91,6 +91,16 @@ impl<'s> TryFrom<&'s str> for Owner {
     }
 }
 
+impl Display for Owner {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let Some(name) = self.name().ok().flatten() {
+            write!(f, "{}", name)
+        } else {
+            write!(f, "{}", self.id())
+        }
+    }
+}
+
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub struct Group(Gid);
 
@@ -123,6 +133,16 @@ impl<'s> TryFrom<&'s str> for Group {
 
     fn try_from(name: &'s str) -> Result<Group, Self::Error> {
         Group::from_name(name)
+    }
+}
+
+impl Display for Group {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let Some(name) = self.name().ok().flatten() {
+            write!(f, "{}", name)
+        } else {
+            write!(f, "{}", self.id())
+        }
     }
 }
 
@@ -187,5 +207,14 @@ mod tests {
 
         assert_eq!(o.id(), 99);
         assert_eq!(g.id(), 99);
+    }
+
+    #[test]
+    fn test_display() {
+        assert_eq!(&Owner::from_uid(99).to_string(), "nobody");
+        assert_eq!(&Group::from_gid(99).to_string(), "nogroup");
+
+        assert_eq!(&Owner::from_uid(321321).to_string(), "321321");
+        assert_eq!(&Group::from_gid(321321).to_string(), "321321");
     }
 }
