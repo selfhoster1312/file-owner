@@ -9,7 +9,7 @@ Note: This crate will only compile on Unix systems.
 
 ## Set owner and group by name
 
-```ignore
+```no_run
 use file_owner::PathExt;
 
 "/tmp/baz".set_owner("nobody").unwrap();
@@ -18,7 +18,7 @@ use file_owner::PathExt;
 
 ## Set owner and group by id
 
-```ignore
+```no_run
 use file_owner::PathExt;
 
 "/tmp/baz".set_owner(99).unwrap();
@@ -27,7 +27,7 @@ use file_owner::PathExt;
 
 ## Get owner and group
 
-```ignore
+```no_run
 use file_owner::PathExt;
 
 let o = "/tmp/baz".owner().unwrap();
@@ -282,6 +282,16 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_display() {
+        assert_eq!(&Owner::from_uid(99).to_string(), "nobody");
+        assert_eq!(&Group::from_gid(99).to_string(), "nogroup");
+
+        assert_eq!(&Owner::from_uid(321321).to_string(), "321321");
+        assert_eq!(&Group::from_gid(321321).to_string(), "321321");
+    }
+
+    #[test]
+    #[ignore]
     fn test_set() {
         std::fs::write("/tmp/foo", "test").unwrap();
 
@@ -298,6 +308,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_get() {
         std::fs::write("/tmp/bar", "test").unwrap();
 
@@ -318,15 +329,7 @@ mod tests {
     }
 
     #[test]
-    fn test_display() {
-        assert_eq!(&Owner::from_uid(99).to_string(), "nobody");
-        assert_eq!(&Group::from_gid(99).to_string(), "nogroup");
-
-        assert_eq!(&Owner::from_uid(321321).to_string(), "321321");
-        assert_eq!(&Group::from_gid(321321).to_string(), "321321");
-    }
-
-    #[test]
+    #[ignore]
     fn test_ext_traits() {
         std::fs::write("/tmp/baz", "test").unwrap();
 
