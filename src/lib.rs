@@ -201,17 +201,17 @@ impl Display for Group {
 
 /// Sets owner to file at given path.
 pub fn set_owner<E: Into<FileOwnerError>>(path: impl AsRef<Path>, owner: impl TryInto<Owner, Error = E>) -> Result<(), FileOwnerError> {
-    Ok(chown(path.as_ref().into(), Some(owner.try_into().map_err(Into::into)?.0), None)?)
+    Ok(chown(path.as_ref(), Some(owner.try_into().map_err(Into::into)?.0), None)?)
 }
 
 /// Sets group to file at given path.
 pub fn set_group<E: Into<FileOwnerError>>(path: impl AsRef<Path>, group: impl TryInto<Group, Error = E>) -> Result<(), FileOwnerError> {
-    Ok(chown(path.as_ref().into(), None, Some(group.try_into().map_err(Into::into)?.0))?)
+    Ok(chown(path.as_ref(), None, Some(group.try_into().map_err(Into::into)?.0))?)
 }
 
 /// Sets owner and group to file at given path.
 pub fn set_owner_group<E1: Into<FileOwnerError>, E2: Into<FileOwnerError>>(path: impl AsRef<Path>, owner: impl TryInto<Owner, Error = E1>, group: impl TryInto<Group, Error = E2>) -> Result<(), FileOwnerError> {
-    Ok(chown(path.as_ref().into(), Some(owner.try_into().map_err(Into::into)?.0), Some(group.try_into().map_err(Into::into)?.0))?)
+    Ok(chown(path.as_ref(), Some(owner.try_into().map_err(Into::into)?.0), Some(group.try_into().map_err(Into::into)?.0))?)
 }
 
 /// Gets owner of file at given path.
