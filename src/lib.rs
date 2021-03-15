@@ -1,3 +1,43 @@
+/*!
+Set and get Unix file owner and group.
+
+UID/GUI numbers or user/group names can be used.
+
+# Usage examples
+
+## Set owner and group by name
+
+```ignore
+use file_owner::OwnerPath;
+
+"/tmp/baz".set_owner("nobody").unwrap();
+"/tmp/baz".set_group("nogroup").unwrap();
+```
+
+## Set owner and group by id
+
+```ignore
+use file_owner::OwnerPath;
+
+"/tmp/baz".set_owner(99).unwrap();
+"/tmp/baz".set_group(99).unwrap();
+```
+
+## Get owner and group
+
+```ignore
+use file_owner::OwnerPath;
+
+let o = "/tmp/baz".owner().unwrap();
+o.id(); // 99
+o.name(); // Some("nobody")
+
+let g = "/tmp/baz".group().unwrap();
+g.id(); // 99
+g.name(); // Some("nogroup")
+```
+
+*/
 use nix::unistd::chown;
 use nix::unistd::{Gid, Uid, Group as NixGroup, User};
 use std::path::Path;
