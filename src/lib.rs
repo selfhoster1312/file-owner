@@ -39,6 +39,7 @@ g.id(); // 99
 g.name(); // Some("nogroup")
 ```
 */
+#![cfg(unix)]
 
 use nix::unistd::chown;
 use nix::unistd::{Gid, Uid, Group as NixGroup, User};
