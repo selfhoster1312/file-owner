@@ -283,8 +283,11 @@ mod tests {
 
     #[test]
     fn test_display() {
-        assert_eq!(&Owner::from_uid(99).to_string(), "nobody");
-        assert_eq!(&Group::from_gid(99).to_string(), "nogroup");
+        let nobody_id = Owner::from_name("nobody").unwrap().id();
+        let nogroup_id = Group::from_name("nogroup").unwrap().id();
+
+        assert_eq!(&Owner::from_uid(nobody_id).to_string(), "nobody");
+        assert_eq!(&Group::from_gid(nogroup_id).to_string(), "nogroup");
 
         assert_eq!(&Owner::from_uid(321321).to_string(), "321321");
         assert_eq!(&Group::from_gid(321321).to_string(), "321321");
@@ -292,60 +295,91 @@ mod tests {
 
     #[test]
     #[ignore]
-    fn test_set() {
-        std::fs::write("/tmp/foo", "test").unwrap();
+    fn test_set_get() {
+        let nobody_id = Owner::from_name("nobody").unwrap().id();
+        let nogroup_id = Group::from_name("nogroup").unwrap().id();
 
-        set_owner("/tmp/foo", "nobody").unwrap();
-        set_owner("/tmp/foo", 99).unwrap();
+        let file1 = tempfile::NamedTempFile::new().unwrap();
+        let file_path1 = file1.path();
+        let file2 = tempfile::NamedTempFile::new().unwrap();
+        let file_path2 = file2.path();
 
-        set_group("/tmp/foo", "nogroup").unwrap();
-        set_group("/tmp/foo", 99).unwrap();
+        set_owner(file_path1, "nobody").unwrap();
+        assert_eq!(owner(file_path1).unwrap().name().unwrap().as_deref(), Some("nobody"));
+        set_owner(file_path2, nobody_id).unwrap();
+        assert_eq!(owner(file_path2).unwrap().name().unwrap().as_deref(), Some("nobody"));
 
-        set_owner_group("/tmp/foo", "nobody", "nogroup").unwrap();
-        set_owner_group("/tmp/foo", 99, 99).unwrap();
-        set_owner_group("/tmp/foo", 99, "nogroup").unwrap();
-        set_owner_group("/tmp/foo", "nobody", 99).unwrap();
+        set_group(file_path1, "nogroup").unwrap();
+        assert_eq!(group(file_path1).unwrap().name().unwrap().as_deref(), Some("nogroup"));
+        set_group(file_path2, nogroup_id).unwrap();
+        assert_eq!(group(file_path2).unwrap().name().unwrap().as_deref(), Some("nogroup"));
     }
 
     #[test]
     #[ignore]
-    fn test_get() {
-        std::fs::write("/tmp/bar", "test").unwrap();
+    fn test_set_get_all() {
+        let nobody_id = Owner::from_name("nobody").unwrap().id();
+        let nogroup_id = Group::from_name("nogroup").unwrap().id();
 
-        set_owner("/tmp/bar", "nobody").unwrap();
-        set_group("/tmp/bar", "nogroup").unwrap();
+        let file1 = tempfile::NamedTempFile::new().unwrap();
+        let file_path1 = file1.path();
+        let file2 = tempfile::NamedTempFile::new().unwrap();
+        let file_path2 = file2.path();
+        let file3 = tempfile::NamedTempFile::new().unwrap();
+        let file_path3 = file3.path();
+        let file4 = tempfile::NamedTempFile::new().unwrap();
+        let file_path4 = file4.path();
 
-        assert_eq!(owner("/tmp/bar").unwrap().name().unwrap().as_deref(), Some("nobody"));
-        assert_eq!(group("/tmp/bar").unwrap().name().unwrap().as_deref(), Some("nogroup"));
+        set_owner_group(file_path1, "nobody", "nogroup").unwrap();
+        assert_eq!(owner(file_path1).unwrap().name().unwrap().as_deref(), Some("nobody"));
+        assert_eq!(group(file_path1).unwrap().name().unwrap().as_deref(), Some("nogroup"));
+        set_owner_group(file_path2, nobody_id, nogroup_id).unwrap();
+        assert_eq!(owner(file_path2).unwrap().name().unwrap().as_deref(), Some("nobody"));
+        assert_eq!(group(file_path2).unwrap().name().unwrap().as_deref(), Some("nogroup"));
 
-        set_owner_group("/tmp/bar", "nobody", "nogroup").unwrap();
+        set_owner_group(file_path3, nobody_id, "nogroup").unwrap();
+        assert_eq!(owner(file_path3).unwrap().name().unwrap().as_deref(), Some("nobody"));
+        assert_eq!(group(file_path3).unwrap().name().unwrap().as_deref(), Some("nogroup"));
+        set_owner_group(file_path4, "nobody", nogroup_id).unwrap();
+        assert_eq!(owner(file_path4).unwrap().name().unwrap().as_deref(), Some("nobody"));
+        assert_eq!(group(file_path4).unwrap().name().unwrap().as_deref(), Some("nogroup"));
+    }
 
-        let (o, g) = owner_group("/tmp/bar").unwrap();
+    #[test]
+    #[ignore]
+    fn test_get_all() {
+        let file = tempfile::NamedTempFile::new().unwrap();
+        let file_path = file.path();
+
+        set_owner_group(file_path, "nobody", "nogroup").unwrap();
+
+        let (o, g) = owner_group(file_path).unwrap();
         assert_eq!(o.name().unwrap().as_deref(), Some("nobody"));
         assert_eq!(g.name().unwrap().as_deref(), Some("nogroup"));
-
-        assert_eq!(o.id(), 99);
-        assert_eq!(g.id(), 99);
     }
 
     #[test]
     #[ignore]
     fn test_ext_traits() {
-        std::fs::write("/tmp/baz", "test").unwrap();
+        let nobody_id = Owner::from_name("nobody").unwrap().id();
+        let nogroup_id = Group::from_name("nogroup").unwrap().id();
 
-        "/tmp/baz".set_owner("nobody").unwrap();
-        "/tmp/baz".set_group("nogroup").unwrap();
+        let file = tempfile::NamedTempFile::new().unwrap();
+        let file_path = file.path();
 
-        assert_eq!("/tmp/baz".owner().unwrap().name().unwrap().as_deref(), Some("nobody"));
-        assert_eq!("/tmp/baz".group().unwrap().name().unwrap().as_deref(), Some("nogroup"));
+        file_path.set_owner("nobody").unwrap();
+        file_path.set_group("nogroup").unwrap();
 
-        "/tmp/baz".set_owner_group("nobody", "nogroup").unwrap();
+        assert_eq!(file_path.owner().unwrap().name().unwrap().as_deref(), Some("nobody"));
+        assert_eq!(file_path.group().unwrap().name().unwrap().as_deref(), Some("nogroup"));
 
-        let (o, g) = "/tmp/baz".owner_group().unwrap();
+        file_path.set_owner_group("nobody", "nogroup").unwrap();
+
+        let (o, g) = file_path.owner_group().unwrap();
         assert_eq!(o.name().unwrap().as_deref(), Some("nobody"));
         assert_eq!(g.name().unwrap().as_deref(), Some("nogroup"));
 
-        assert_eq!(o.id(), 99);
-        assert_eq!(g.id(), 99);
+        assert_eq!(o.id(), nobody_id);
+        assert_eq!(g.id(), nogroup_id);
     }
 }
